@@ -5,10 +5,12 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 public class Client {
-    final String SERVER_ADDRESS = "1.2.3.4";
+    final String SERVER_ADDRESS = "127.0.0.1"; // Localhost
     final int SERVER_PORT = 1234;
+    final static int TIMEOUT = 10000;
 
     final static String END_OF_MESSAGE = "\n";
+
 
     public static void main(String[] args) {
         // Create a new client and run it
@@ -17,7 +19,8 @@ public class Client {
     }
 
     private void run() {
-        System.out.println("Ouvertur de la connexion au serveur " + SERVER_ADDRESS + ":" + SERVER_PORT);
+        System.out.println("Ouverture de la connexion au serveur " + SERVER_ADDRESS + ":" + SERVER_PORT);
+
         try (var socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
              var in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
              var out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
@@ -27,26 +30,28 @@ public class Client {
 
             while (true) {
                 System.out.print("> ");
-                userInput = consoleIn.readLine().trim();
+                userInput = consoleIn.readLine();
 
-                // Send STOP command to server if user wants to quit
-                if ("STOP".equalsIgnoreCase(userInput)) {
-                    out.println("STOP");
+                // Envoie "STOP" au serveur pour terminer la connexion
+                if (userInput.equalsIgnoreCase("STOP")) {
+                    out.write("STOP" + END_OF_MESSAGE);
+                    out.flush();
                     System.out.println("Disconnecting from server...");
                     break;
                 }
 
-                // Send the user input to the server
-                out.println(userInput);
+                // Envoie l'entrée de l'utilisateur au serveur
+                out.write(userInput + END_OF_MESSAGE);
+                out.flush();
 
-                // Read server response
+                // lit la réponse du serveur
                 String serverResponse = in.readLine();
                 if (serverResponse == null) {
-                    System.out.println("Server closed the connection.");
+                    System.out.println("Erreur : la connexion avec le serveur a été fermée.");
                     break;
                 }
 
-                // Handle server response based on the protocol
+                // gérer la réponse du serveur en fonction du protocole
                 handleServerResponse(serverResponse);
             }
 
@@ -56,6 +61,11 @@ public class Client {
         }
     }
 
+    /**
+     * Gère la réponse du serveur en fonction du protocole.
+     *
+     * @param response Réponse du serveur
+     */
     private void handleServerResponse(String response) {
         if (response.startsWith("RESULT")) {
             System.out.println("Result: " + response.substring("RESULT ".length()));
@@ -67,5 +77,4 @@ public class Client {
             System.out.println("Unexpected response from server: " + response);
         }
     }
-
 }
