@@ -12,6 +12,9 @@ public class Server {
     final String UNKNOWN = "UNKNOWN";
     final String BAD_DATA = "BAD_DATA";
     final String RESULT = "RESULT";
+    final String STOP = "STOP";
+
+    final static String END_OF_MESSAGE = "\n";
 
     public static void main(String[] args) {
         // Create a new server and run it
@@ -20,54 +23,62 @@ public class Server {
     }
 
     /**
-     * Méthod principal qui définit les actions du serveur.
+     * Principal method of the server, it listens on the port and accepts new connections.
      */
     private void run() {
-        // Démarrage du serveur
+        // Start the server and listen on the port
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
             System.out.println("Le serveur a démarré, il écoute le port " + SERVER_PORT);
 
             while (true) {
-                // Acceptation de la connection
+                // Accepte new connection
                 try (Socket socket = serverSocket.accept();
                      var in = new BufferedReader(new InputStreamReader(socket.getInputStream(), UTF_8));
-                     var out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), UTF_8))) {
+                     BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), UTF_8))) {
                     System.out.println("Nouvelle connection acceptée");
 
                     while (true) {
-                        // Lis le message entré par le client, relance la boucle en cas d'erreur
+                        // reads the message sent by the client and stops the loop if the message is null or STOP
                         String message = in.readLine();
-                        if (null == message) break;
-
-                        // Détermine l'opération demandée et renvoie une erreur si l'opération est
-                        // inconnue et relance la boucle
-                        String[] words = message.split(" ");
-                        Operation operation = Operation.fromString(words[0]);
-                        if (null == operation) {
-                            out.write(UNKNOWN + " " + words[0]);
-                            out.flush();
+                        if (message == null || message.equals(STOP)) {
                             break;
                         }
 
-                        // Détermine si l'opération est possible avec les arguments passés sinon
-                        // renvoie une erreur et relance la boucle
+
+                        // Determines if the operation is known by the server, if not returns an error message
+                        // and restarts the loop
+                        String[] words = message.split(" ");
+                        Operation operation = Operation.fromString(words[0]);
+
+                        if (null == operation) {
+                            out.write(UNKNOWN + " " + words[0] + END_OF_MESSAGE);
+                            out.flush();
+                            continue;
+                        }
+
+
+                        // Determins if the operation is possible with the arguments given by the client else
+                        // returnes an error message and restarts the loop
                         int[] args = new int[words.length - 1];
                         try {
                             for (int i = 1; i < words.length; i++) {
                                 args[i - 1] = Integer.parseInt(words[i]);
                             }
                         } catch (NumberFormatException e) {
-                            System.out.println("Problème de conversion en entier " + e);
-                        }
-                        String argumentError = operation.checkArguments(args);
-                        if (!argumentError.isBlank()) {
-                            out.write(BAD_DATA + " " + argumentError);
+                            out.write(BAD_DATA + "Problème de conversion en entier " + e + END_OF_MESSAGE);
                             out.flush();
-                            break;
+                            continue;
                         }
 
-                        // Calcule le résultat et le renvoie
-                        out.write(RESULT + " " + operation.calculate(args));
+                        String argumentError = operation.checkArguments(args);
+                        if (!argumentError.isBlank()) {
+                            out.write(BAD_DATA + " " + argumentError + END_OF_MESSAGE);
+                            out.flush();
+                            continue;
+                        }
+
+                        // Calcilates the result of the operation and sends it to the client
+                        out.write(RESULT + " " + operation.calculate(args) + END_OF_MESSAGE);
                         out.flush();
                     }
                 } catch (IOException e) {
@@ -80,7 +91,7 @@ public class Server {
     }
 
     /**
-     * Enumère les opérations que le serveur peut effectuer.
+     * Enumerates the different operations that can be performed on a list of integers.
      */
     enum Operation {
         ADD("ADD"),
@@ -92,19 +103,19 @@ public class Server {
         private final String operation;
 
         /**
-         * Constructeur d'une opération avec son nom.
+         * Constructor of the enum Operation with the name of the operation.
          *
-         * @param operation le nom de l'opération.
+         * @param operation the name of the operation.
          */
         Operation(String operation) {
             this.operation = operation;
         }
 
         /**
-         * Retourne l'opération correspondant à un nom.
+         * Return the operation corresponding to the name given in parameter.
          *
-         * @param operation le nom de l'opération.
-         * @return l'opération correspondant à un nom, null si aucune opéraiton n'est liée à ce nom.
+         * @param operation the name of the operation.
+         * @return the operation corresponding to the name given in parameter, null if the operation is unknown.
          */
         public static Operation fromString(String operation) {
             for (Operation op : Operation.values()) {
@@ -116,19 +127,19 @@ public class Server {
         }
 
         /**
-         * Retourne le nom de l'opération sous forme de String.
+         * Return the name of the operation as a string.
          *
-         * @return le nom de l'opération sous forme de String.
+         * @return the name of the operation as a string.
          */
         public String getOperation() {
             return operation;
         }
 
         /**
-         * Vérifier si une liste d'arguments entiers est compatible avec une opération spécifique.
+         * Check if the arguments are correct for the operation.
          *
-         * @param args la liste d'arguments entiers.
-         * @return un String vide si l'opération est possible, un message d'erreur sinon.
+         * @param args list of integers on which the operation is performed.
+         * @return an empty string if the arguments are correct, an error message otherwise.
          */
         public String checkArguments(int[] args) {
             return switch (this) {
@@ -153,12 +164,12 @@ public class Server {
         }
 
         /**
-         * Effectue un calcul sur une liste d'entiers suivant une opération spécifique.
+         * Does the calculation of the specific operation on the list of integers.
          *
-         * @param args la liste d'entiers sur laquelle effectuer l'opération.
-         * @return le résultat du calcul.
-         * @throws ArithmeticException si une erreur a lieu, notamment si les arguments n'ont pas
-         *                             été vérifiés correctement.
+         * @param args list of integers on which the operation is performed.
+         * @return the result of the operation.
+         * @throws ArithmeticException if an error occurs during the calculation, if the arguments are
+         *                    not verified correctly.
          */
         public int calculate(int[] args) throws ArithmeticException {
             return switch (this) {
