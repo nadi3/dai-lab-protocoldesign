@@ -32,7 +32,7 @@ public class Client {
                 System.out.print("> ");
                 userInput = consoleIn.readLine();
 
-                // Envoie "STOP" au serveur pour terminer la connexion
+                // Send STOP command to server if user wants to quit
                 if (userInput.equalsIgnoreCase("STOP")) {
                     out.write("STOP" + END_OF_MESSAGE);
                     out.flush();
@@ -40,18 +40,18 @@ public class Client {
                     break;
                 }
 
-                // Envoie l'entrée de l'utilisateur au serveur
+                // Send the user input to the server
                 out.write(userInput + END_OF_MESSAGE);
                 out.flush();
 
-                // lit la réponse du serveur
+                // Read server response
                 String serverResponse = in.readLine();
                 if (serverResponse == null) {
                     System.out.println("Erreur : la connexion avec le serveur a été fermée.");
                     break;
                 }
 
-                // gérer la réponse du serveur en fonction du protocole
+                // Handle server response based on the protocol
                 handleServerResponse(serverResponse);
             }
 
@@ -62,9 +62,9 @@ public class Client {
     }
 
     /**
-     * Gère la réponse du serveur en fonction du protocole.
+     * Handle the server response based on the protocol
      *
-     * @param response Réponse du serveur
+     * @param response The server response
      */
     private void handleServerResponse(String response) {
         if (response.startsWith("RESULT")) {
