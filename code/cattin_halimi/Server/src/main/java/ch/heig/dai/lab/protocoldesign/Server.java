@@ -37,6 +37,10 @@ public class Server {
                      BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), UTF_8))) {
                     System.out.println("Nouvelle connection acceptée");
 
+                    // Envoi du menu d'instructions au client
+                    out.write(getMenu() + END_OF_MESSAGE);
+                    out.flush();
+
                     while (true) {
                         // reads the message sent by the client and stops the loop if the message is null or STOP
                         String message = in.readLine();
@@ -91,24 +95,49 @@ public class Server {
     }
 
     /**
+     * Génère le menu des opérations disponibles en utilisant l'énumération Operation.
+     * @return String contenant le menu
+     */
+    private String getMenu() {
+        StringBuilder menu = new StringBuilder("Bienvenue sur la calculatrice serveur!\n");
+        menu.append("Voici les opérations disponibles :\n");
+
+        for (Operation op : Operation.values()) {
+            menu.append("- ").append(op.getOperation()).append(" ");
+            switch (op) {
+                case ADD, SUB, MULT, DIV -> menu.append("x y ...     : ").append(op.getDescription()).append(" (plusieurs arguments)\n");
+                case SQR,SQRT -> menu.append("x          : ").append(op.getDescription()).append(" (un seul argument)\n");
+            }
+        }
+        menu.append("- STOP            : Arrêter la connexion\n");
+        menu.append("END_MENU");  // Marker to indicate the end of the menu
+        return menu.toString();
+    }
+
+
+    /**
      * Enumerates the different operations that can be performed on a list of integers.
      */
     enum Operation {
-        ADD("ADD"),
-        SUB("SUB"),
-        MULT("MULT"),
-        DIV("DIV"),
-        SQRT("SQRT");
+        ADD("ADD", "Addition"),
+        SUB("SUB", "Soustraction"),
+        MULT("MULT", "Multiplication"),
+        DIV("DIV", "Division"),
+        SQR("SQR", "Carré"),
+        SQRT("SQRT", "Racine carrée");
 
         private final String operation;
+        private final String description;
 
         /**
          * Constructor of the enum Operation with the name of the operation.
          *
          * @param operation the name of the operation.
+         * @param description the description of the operation.
          */
-        Operation(String operation) {
+        Operation(String operation, String description) {
             this.operation = operation;
+            this.description = description;
         }
 
         /**
@@ -136,6 +165,15 @@ public class Server {
         }
 
         /**
+         * Return the description of the operation.
+         *
+         * @return the description of the operation.
+         */
+        public String getDescription() {
+            return description;
+        }
+
+        /**
          * Check if the arguments are correct for the operation.
          *
          * @param args list of integers on which the operation is performed.
@@ -143,18 +181,25 @@ public class Server {
          */
         public String checkArguments(int[] args) {
             return switch (this) {
-                case ADD, SUB, MULT -> "";
+                case ADD, SUB, MULT -> "";  // Aucune restriction
                 case DIV -> {
                     for (int arg : args) {
-                        if (0 == arg)
+                        if (arg == 0)
                             yield "division par 0";
                     }
                     yield "";
                 }
+                case SQR -> {
+                    if (args.length > 1) {
+                        yield "trop d'arguments pour SQR";
+                    } else {
+                        yield "";
+                    }
+                }
                 case SQRT -> {
-                    if (1 < args.length) {
-                        yield "trop d'argmuents";
-                    } else if (0 > args[0]) {
+                    if (args.length > 1) {
+                        yield "trop d'arguments pour SQRT";
+                    } else if (args[0] < 0) {
                         yield "racine de nombre négatif";
                     } else {
                         yield "";
@@ -177,6 +222,7 @@ public class Server {
                 case SUB -> Arrays.stream(args).reduce((a, b) -> a - b).orElse(0);
                 case MULT -> Arrays.stream(args).reduce((a, b) -> a * b).orElse(1);
                 case DIV -> Arrays.stream(args).reduce((a, b) -> a / b).orElse(1);
+                case SQR -> args[0] * args[0];
                 case SQRT -> (int) Math.sqrt(args[0]);
             };
         }

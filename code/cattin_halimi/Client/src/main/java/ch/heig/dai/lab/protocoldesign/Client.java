@@ -27,6 +27,8 @@ public class Client {
              var consoleIn = new BufferedReader(new InputStreamReader(System.in))) {
 
             String userInput;
+            // handle Welcome message and Menu from server
+            receiveAndDisplayMenu(in);
 
             while (true) {
                 System.out.print("> ");
@@ -58,6 +60,24 @@ public class Client {
         } catch (IOException e) {
             System.out.println("Erreur lors de la connexion au serveur: " + e.getMessage());
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Receives and displays the welcome message and menu from the server.
+     *
+     * @param in BufferedReader connected to the server input stream
+     * @throws IOException if an I/O error occurs
+     */
+    private void receiveAndDisplayMenu(BufferedReader in) throws IOException {
+        String line;
+        while ((line = in.readLine()) != null) {
+            System.out.println(line);
+
+            // Break out of the loop if the last line of the menu is reached.
+            if (line.equals("END_MENU")) {
+                break;
+            }
         }
     }
 
