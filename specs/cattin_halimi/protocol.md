@@ -3,6 +3,7 @@
 ## Overview
 1. Protocole client-serveur.
 2. Le client se connecte au serveur.
+2. Le serveur envoie sa liste d'opérations au client.
 3. Le client demande au serveur d'effectuer une opération sur des nombres entiers.
 4. Le serveur répond avec :
    * le résultat de l'opération ou 
@@ -15,28 +16,23 @@
 
 ## Transport layer protocol
 Le procotole utilise TCP. C'est le client qui établi la connection. Il connaît l'adresse IP du 
-serveur, qui écoute sur le port 1234. C'est le serveur qui termine la connexion lorsque le client 
-lui envoie qu'il a terminé.
+serveur, qui écoute sur le port 1234. C'est le serveur qui termine la connexion lorsque le client lui envoie qu'il a terminé.
 
 ## Messages
 Les messages de l'application sont :
-* `<OP> <num1> <num2> ...` : Le client demande à effectuer une opération, où `<OP>` est le nom 
-  d'une opération (`ADD`, `SUB`, `MUL`, ...) et `<num1> <num2> ...` est une liste de nombres 
-  entiers sur laquelle il faut effectuer l'opération.
+* `<OP> <num1> <num2> ...` : Le client demande à effectuer une opération, où `<OP>` est le nom d'une opération (`ADD`, `SUB`, `MUL`, ...) et `<num1> <num2> ...` est une liste de nombres entiers sur laquelle il faut effectuer l'opération.
 * `STOP` : Le client déclare qu'il n'a plus d'opération à faire.
-* `UNKNOWN <operation>` : Message d'erreur si le client demande une opération que le serveur ne 
-  connaît pas.
-* `BAD_DATA <message>` : Message d'erreur si les nombres donnés ne permettent pas d'effectuer 
-  l'opération demandée (pas assez de nombres, division par 0, ...) avec un message d'explication.
+* `UNKNOWN <operation>` : Message d'erreur si le client demande une opération que le serveur ne connaît pas.
+* `BAD_DATA <message>` : Message d'erreur si les nombres donnés ne permettent pas d'effectuer l'opération demandée (pas assez de nombres, division par 0, ...) avec un message d'explication.
 
-Les messages sont encodés en UTF-8 avec \n comme fin de ligne. Si l'opération existe et est 
-possible, le serveur envoie le résultat sous forme textuelle en UTF-8.
+Les messages sont encodés en UTF-8 avec \n comme fin de ligne. Si l'opération existe et est possible, le serveur envoie le résultat sous forme textuelle en UTF-8.
 
 ## Dialogue exemple
 
 ```mermaid
 sequenceDiagram
-    Client->>+Serveur: Ouverture de la connexion
+    Client->>Serveur: Ouverture de la connexion
+    Serveur ->> Client: Liste des opérations possibles
     note right of Client: Simple adition
     Client->>Serveur: ADD 10 5 6
     Serveur->>Client: 21
@@ -47,7 +43,6 @@ sequenceDiagram
     Client->>Serveur: DIV 10 0
     Serveur->>Client: BAD_DATA division par 0
     Client ->> Serveur: STOP
-    Serveur->>-Client: Fermeture de la connexion
+    Serveur->>Client: Fermeture de la connexion
 ```
-
 
